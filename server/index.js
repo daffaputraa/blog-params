@@ -1,121 +1,89 @@
 // server/index.js
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
+const fs = require("fs");
 const axios = require("axios");
 const app = express();
 
-// Serve static files
 app.use(express.static(path.join(__dirname, "../build")));
 
-// Proxy endpoints
-app.get("/api/artikel/kajian", async (req, res) => {
-  try {
-    const response = await axios.get(
-      "http://api.idrisiyyah.or.id:3000/artikel/kajian"
-    );
-    res.json(response.data);
-  } catch (error) {
-    console.error("Error fetching articles:", error);
-    res.status(500).json({ error: "Failed to fetch articles" });
-  }
-});
-
-app.get("/api/getimage/:imageName", async (req, res) => {
-  try {
-    const response = await axios.get(
-      `http://api.idrisiyyah.or.id:3000/getimage/${req.params.imageName}`,
-      { responseType: "stream" }
-    );
-    response.data.pipe(res);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    res.status(500).send("Error fetching image");
-  }
-});
-
-// Handle artikel routes for SEO
+// Route untuk halaman artikel
 app.get("/artikel/:slug", async (req, res) => {
   try {
     const { slug } = req.params;
-    const indexPath = path.resolve(__dirname, "../build/index.html");
 
-    // Fetch article data
+    // Fetch data artikel dari API
     const response = await axios.get(
-      "http://api.idrisiyyah.or.id:3000/artikel/kajian"
+      "https://new-anime-api.vercel.app/all-anime"
     );
+    const anime = response.data.find((item) => item.slug === slug);
 
-    if (response.status === 200 && Array.isArray(response.data)) {
-      const article = response.data.find(
-        (item) => createSlug(item.judul_artikel) === slug
-      );
+    if (!anime) {
+      return res
+        .status(404)
+        .sendFile(path.join(__dirname, "../build/index.html"));
+    }
 
-      if (!article) {
-        return res.sendFile(indexPath);
+    // Baca file index.html
+    const filePath = path.join(__dirname, "../build/index.html");
+    fs.readFile(filePath, "utf8", (err, data) => {
+      if (err) {
+        console.error("Error reading index.html:", err);
+        return res.status(500).send("Error reading index.html");
       }
 
-      fs.readFile(indexPath, "utf8", (err, htmlData) => {
-        if (err) {
-          console.error("Error reading index.html:", err);
-          return res.sendFile(indexPath);
-        }
+      // Inject meta tags dinamis
+      const modifiedHtml = data
+        .replace(/<title>.*?<\/title>/, `<title>${anime.title}</title>`)
+        .replace(
+          /<meta name="description".*?>/,
+          `<meta name="description" content="${anime.description}" />`
+        )
+        .replace(
+          /<meta property="og:title".*?>/,
+          `<meta property="og:title" content="${anime.title}" />`
+        )
+        .replace(
+          /<meta property="og:description".*?>/,
+          `<meta property="og:description" content="${anime.description}" />`
+        )
+        .replace(
+          /<meta property="og:image".*?>/,
+          `<meta property="og:image" content="${anime.thumbnail}" />`
+        )
+        .replace(
+          /<meta property="og:url".*?>/,
+          `<meta property="og:url" content="${process.env.REACT_APP_BASE_URL}/read/${anime.slug}" />`
+        )
+        .replace(
+          /<meta property="twitter:title".*?>/,
+          `<meta property="twitter:title" content="${anime.title}" />`
+        )
+        .replace(
+          /<meta property="twitter:description".*?>/,
+          `<meta property="twitter:description" content="${anime.description}" />`
+        )
+        .replace(
+          /<meta property="twitter:image".*?>/,
+          `<meta property="twitter:image" content="${anime.thumbnail}" />`
+        )
+        .replace(
+          /<meta property="twitter:url".*?>/,
+          `<meta property="twitter:url" content="${process.env.REACT_APP_BASE_URL}/read/${anime.slug}" />`
+        );
 
-        // Generate absolute URLs
-        const baseUrl = `${req.protocol}://${req.get("host")}`;
-        const imageUrl = `${baseUrl}/api/getimage/${article.gambar}`;
-        const articleUrl = `${baseUrl}/artikel/${slug}`;
-
-        // Update meta tags
-        const updatedHtml = htmlData
-          .replace(
-            /<title>.*?<\/title>/,
-            `<title>${article.judul_artikel}</title>`
-          )
-          .replace(
-            /<meta name="description".*?>/,
-            `<meta name="description" content="${article.deskripsi}">`
-          )
-          .replace(
-            /<meta property="og:title".*?>/,
-            `<meta property="og:title" content="${article.judul_artikel}">`
-          )
-          .replace(
-            /<meta property="og:description".*?>/,
-            `<meta property="og:description" content="${article.deskripsi}">`
-          )
-          .replace(
-            /<meta property="og:image".*?>/,
-            `<meta property="og:image" content="${imageUrl}">`
-          )
-          .replace(
-            /<meta property="og:url".*?>/,
-            `<meta property="og:url" content="${articleUrl}">`
-          );
-
-        res.send(updatedHtml);
-      });
-    } else {
-      res.sendFile(indexPath);
-    }
+      res.send(modifiedHtml);
+    });
   } catch (error) {
-    console.error("Server error:", error);
-    res.sendFile(path.resolve(__dirname, "../build/index.html"));
+    console.error("Error:", error);
+    res.status(500).sendFile(path.join(__dirname, "../build/index.html"));
   }
 });
 
-// Handle all other routes
+// Fallback route
 app.get("*", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "../build/index.html"));
+  res.sendFile(path.join(__dirname, "../build/index.html"));
 });
-
-function createSlug(title) {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
 
 const PORT = process.env.PORT || 3003;
 app.listen(PORT, () => {

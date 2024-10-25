@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import parse from "html-react-parser";
 
-const Card = ({ judul, img, deskripsi }) => {
+const Card = ({ judul, img, deskripsi, slug }) => {
   function createSlug(title) {
     return title
       .toLowerCase() // Ubah ke huruf kecil
@@ -12,7 +12,7 @@ const Card = ({ judul, img, deskripsi }) => {
       .replace(/-+/g, "-"); // Ganti tanda hubung ganda menjadi satu
   }
 
-  const slug = createSlug(judul);
+  // const slug = createSlug(judul);
 
   return (
     <>

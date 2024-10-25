@@ -32,7 +32,7 @@
     "eject": "react-scripts eject",
     "server": "node server/index.js",
     "build:server": "npm run build && node server/index.js",
-    "dev:tunnel": "npm run build:server & ngrok http 3003"
+    "dev:tunnel": "server & ngrok http 3003"
   },
   "eslintConfig": {
     "extends": [

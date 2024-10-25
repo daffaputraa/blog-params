@@ -9,7 +9,9 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await axios.get("api/artikel/kajian");
+        const data = await axios.get(
+          "https://new-anime-api.vercel.app/all-anime"
+        );
         if (data.status == 200) {
           setDataRaw(data.data);
           console.log(data.data);
@@ -30,12 +32,15 @@ const Home = () => {
 
           {dataRaw &&
             dataRaw.map((element, index) => (
-              <Card
-                key={element.id}
-                img={`api/getimage/${element.gambar}`}
-                judul={element.judul_artikel}
-                deskripsi={element.deskripsi}
-              />
+              <>
+                <Card
+                  slug={element.slug}
+                  key={element.id}
+                  img={`https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTiMiU13NSLEbvv05jC6EJULEMoO2WefneexQ&s`}
+                  judul={element.title}
+                  deskripsi={element.description}
+                />
+              </>
             ))}
         </div>
       </main>
